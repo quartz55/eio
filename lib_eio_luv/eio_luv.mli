@@ -173,6 +173,9 @@ module Low_level : sig
     (** [read_into handle buf] reads some bytes from [handle] into [buf] returning the number
         of bytes read.
         @raise End_of_file if there is no more data to read *)
+
+    val write : [ `Stream of [< `Pipe | `TCP | `TTY ] ] Handle.t -> Luv.Buffer.t list -> unit
+    (** [write handle bufs] writes the contents of [bufs] to [handle]. *)
   end
 end
 

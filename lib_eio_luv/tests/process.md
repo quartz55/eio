@@ -52,6 +52,26 @@ Using a pipe to redirect output to a buffer.
 - : string = "Hello, World!\n"
 ```
 
+Writing to stdin of a process works.
+
+```ocaml
+# Eio_luv.run @@ fun _env ->
+  Switch.run @@ fun sw ->
+  let parent_pipe = Eio_luv.Low_level.Pipe.init () in
+  let handle = Eio_luv.Low_level.Pipe.to_handle ~sw parent_pipe in
+  let bufs = [ Luv.Buffer.from_string "Hello!" ] in 
+  let redirect = Eio_luv.Low_level.Process.[
+    inherit_fd ~fd:Luv.Process.stdout ~from_parent_fd:Luv.Process.stdout ();
+    to_parent_pipe ~fd:Luv.Process.stdin ~parent_pipe:parent_pipe ()
+  ] in
+  let t = Process.spawn ~redirect "head" [ "head" ] in
+  let () = Eio_luv.Low_level.Stream.write handle bufs in
+  Eio_luv.Low_level.Handle.close handle;
+  Process.await_exit t;;
+Hello!
+- : int * int64 = (0, 0L)
+```
+
 Stopping a process works.
 
 ```ocaml
