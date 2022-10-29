@@ -114,6 +114,66 @@ module Low_level : sig
         @param sw The handle is closed when [sw] is released, if not closed manually first.
         @param close_unix if [true] (the default), calling [close] also closes [fd]. *)
   end
+
+  module Pipe : sig
+    type t
+    (** A pipe *)
+
+    val init : ?for_handle_passing:bool -> unit -> t
+    (** Wraps {!Luv.Pipe.init}*)
+
+    val to_handle : ?close_unix:bool -> sw:Switch.t -> t -> [`Stream of [`Pipe]] Handle.t
+    (** Converts a pipe to a {!Handle.t}*)
+  end
+
+  module Process : sig
+    type t
+    (** A process *)
+
+    type redirection
+    (** Wraps {!Luv.Process.redirection}*)
+
+    val to_parent_pipe :
+    ?readable_in_child:bool ->
+    ?writable_in_child:bool ->
+    ?overlapped:bool ->
+    fd:int ->
+    parent_pipe:Pipe.t ->
+    unit ->
+    redirection
+    (** Wraps {!Luv.Process.to_parent_pipe}*)
+
+    val inherit_fd : fd:int -> from_parent_fd:int -> unit -> redirection
+    (** Wraps {!Luv.Process.inherit_fd}*)
+
+    val await_exit : t -> int * int64
+    (** [await_exit t] waits for the process [t] to finish.
+
+        It returns [(exit_status, term_signal)], see {!Luv.Process.spawn} for
+        more details on these values. *)
+
+    val stop : t -> unit
+    (** A wrapper for {!Luv.Process.kill} using the signal {!Luv.Signal.sigkill}. *)
+
+    val spawn :
+      ?cwd:string ->
+      ?env:(string * string) list ->
+      ?uid:int ->
+      ?gid:int ->
+      ?redirect:redirection list ->
+      string ->
+      string list -> t
+    (** Wraps {!Luv.Process.spawn}*)
+  end
+
+  module Stream : sig
+    type 'a t = [`Stream of 'a] Handle.t
+
+    val read_into : [< `Pipe | `TCP | `TTY ] t -> Luv.Buffer.t -> int
+    (** [read_into handle buf] reads some bytes from [handle] into [buf] returning the number
+        of bytes read.
+        @raise End_of_file if there is no more data to read *)
+  end
 end
 
 (** {1 Eio API} *)
