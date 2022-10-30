@@ -152,8 +152,8 @@ module Low_level : sig
         It returns [(exit_status, term_signal)], see {!Luv.Process.spawn} for
         more details on these values. *)
 
-    val stop : t -> unit
-    (** A wrapper for {!Luv.Process.kill} using the signal {!Luv.Signal.sigkill}. *)
+    val send_signal : t -> int -> unit
+    (** A wrapper for {!Luv.Process.kill}. *)
 
     val spawn :
       ?cwd:string ->

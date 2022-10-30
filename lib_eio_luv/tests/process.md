@@ -81,7 +81,7 @@ Stopping a process works.
     inherit_fd ~fd:Luv.Process.stdout ~from_parent_fd:Luv.Process.stdout ()
   ] in
   let t = Process.spawn ~redirect "sleep" [ "sleep"; "10" ] in
-  Process.stop t;
+  Process.send_signal t Luv.Signal.sigkill;
   Process.await_exit t;;
 - : int * int64 = (9, 0L)
 ```

@@ -570,7 +570,7 @@ module Low_level = struct
 
     let await_exit (_, status) = Promise.await status
 
-    let stop (t, _) = Luv.Process.kill t Luv.Signal.sigkill |> or_raise
+    let send_signal (t, _) i = Luv.Process.kill t i |> or_raise
 
     let spawn ?cwd ?env ?uid ?gid ?(redirect=[]) cmd args =
       let promise, resolve = Promise.create () in
