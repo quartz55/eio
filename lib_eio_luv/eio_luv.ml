@@ -574,6 +574,44 @@ module Low_level = struct
       Handle.of_luv ~sw sock
   end
 
+  module Pipe = struct
+    type t = Luv.Pipe.t
+
+    let init ?for_handle_passing () = Luv.Pipe.init ~loop:(get_loop ()) ?for_handle_passing () |> or_raise
+
+    let to_luv x = x
+
+    let to_handle ?close_unix ~sw t =
+      Handle.of_luv ?close_unix ~sw t
+  end
+
+  module Process = struct
+    type t = Luv.Process.t * (int * int64) Promise.t
+
+    (* We have to wrap the redirections in order to enforce the use of
+       our low-level pipe so we can use [get_loop ()] in the init function
+       for the pipe. *)
+    type redirection = Luv.Process.redirection
+
+    let to_parent_pipe ?readable_in_child ?writable_in_child ?overlapped ~fd ~parent_pipe () =
+      let parent_pipe = Pipe.to_luv parent_pipe in
+      Luv.Process.to_parent_pipe ?readable_in_child ?writable_in_child ?overlapped ~fd ~parent_pipe ()
+
+    let inherit_fd = Luv.Process.inherit_fd
+
+    let await_exit (_, status) = Promise.await status
+
+    let send_signal (t, _) i = Luv.Process.kill t i |> or_raise
+
+    let spawn ?cwd ?env ?uid ?gid ?(redirect=[]) cmd args =
+      let promise, resolve = Promise.create () in
+      let on_exit _ ~exit_status ~term_signal =
+        let status = (term_signal, exit_status) in
+        Promise.resolve resolve status
+      in
+      Luv.Process.spawn ?environment:env ?uid ?gid ~loop:(get_loop ()) ?working_directory:cwd ~redirect ~on_exit cmd args |> or_raise, promise
+  end
+
   module Poll = Poll
 
   let sleep_until due =
